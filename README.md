@@ -172,7 +172,28 @@ app.listen();
 
 ### 缓存和批处理
 
+后续调用相同参数的  `.load()` 方法时，该参数将不会再被添加到批处理方法中。 *然而*，返回的 Promise 将仍然等待当前批处理完成。这样，缓存和未缓存的请求将会同时 <ruby>Resolve<rp>（</rp><rt>解决</rt><rp>）</rp></ruby>，允许 DataLoader 对后续依赖的加载优化。
 
+在下面的例子里，<ruby>User<rp>（</rp><rt>用户</rt><rp>）</rp></ruby> `1` 恰巧是缓存的。 然而，因为 User `1` 和 `2` 在同一个 Tick 中加载，它们将会被同时 Resolve。这就意味着 `user.bestFrientID` 加载也会在同一 Tick 下发生，导致了产生 2 次总请求数（与 User `1` 未缓存情况相同）。
+
+```js
+userLoader.prime(1, { bestFriend: 3 });
+
+async function getBestFriend(userID) {
+  const user = await userLoader.load(userID);
+  return await userLoader.load(user.bestFriendID);
+}
+
+// 应用程序的某处
+getBestFriend(1);
+
+// 其他地方
+getBestFriend(2);
+```
+
+如果没有这种优化，缓存的 User `1` 立即 Resolve，这可能会导致 3 次请求总数，因为每次 `user.bestFriendID` 加载并非同时发生。
+
+### 清除缓存
 
 
 
