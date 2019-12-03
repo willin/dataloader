@@ -195,7 +195,98 @@ getBestFriend(2);
 
 ### 清除缓存
 
+在某些不确定因素下，可能需要清除请求缓存。
+
+最常见的例子是在同一请求的修改或更新后，清除 Loader 缓存是必要的。因为缓存的值可能已经过时了，而未来的加载不应该加载任何之前缓存的值。
+
+这里是个简单的 SQL 更新示例。
+
+```js
+// 请求开始...
+const userLoader = new DataLoader(...);
+
+// 一个加载并且被缓存
+const user = await userLoader.load(4)
+
+// 修改操作，导致缓存内容失效
+await sqlRun('UPDATE users WHERE id=4 SET username="zuck"')
+userLoader.clear(4)
+
+// 后续使用 Loader 应该重新加载一遍
+const user = await userLoader.load(4)
+
+// 请求结束
+```
+
+### 缓存报错
+
+如果一次批处理加载失败（即批处理方法抛出 Promise  `reject`），那么和请求的值将不会缓存。但是，如果批处理方法针对单个值返回的是 `Error` 实例，那么 `Error` 将会缓存以防止频繁加载出现相同的报错。
+
+在某些情况下，你可能会希望清除这种针对单个错误的缓存：
+
+```js
+try {
+  const user = await userLoader.load(1);
+} catch (error) {
+  if (/* determine if the error should not be cached */) {
+    userLoader.clear(1);
+  }
+  throw error;
+}
+```
+
+### 禁用缓存
+
+在某些非常见情况下， 可能希望*不缓存* DataLoader。执行 `new DataLoader(myBatchFn, { cache: false })` 将会确保每次执行 `.load()` 方法时产生一个*新* Promise，请求的参数将不会存储到内存中。
+
+然而，当内存缓存禁用时，你的批处理方法可能会接受含有重复值的数组参数！每个参数值各自调用 `.load()`。你的批处理加载器将会为每个请求参数的实例提供返回值。
+
+例如：
+
+```js
+const myLoader = new DataLoader(keys => {
+  console.log(keys);
+  return someBatchLoadFn(keys);
+}, { cache: false });
+
+myLoader.load('A');
+myLoader.load('B');
+myLoader.load('A');
+
+// > [ 'A', 'B', 'A' ]
+```
+
+通过调用  `.clear()` 或 `.clearAll()` 而不是完全禁用缓存，可以实现更复杂的缓存行为。例如，让 DataLoader 在启用内存缓存时为批处理方法提供唯一的 Key，但是当调用批处理方法时，立即清理掉它的缓存，这样后续的请求将加载出新的值。
+
+```js
+const myLoader = new DataLoader(keys => {
+  identityLoader.clearAll();
+  return someBatchLoadFn(keys);
+})
+```
+
+### 自定义缓存
+
+如上所述， DataLoader 的目的是用于缓存每次请求。由于请求是短暂的， DataLoader 使用一个无限增长的 [Map][] 作为内存缓存。这应该不至于造成问题，因为大多数请求都是短暂的，整个缓存可以在请求结束后丢弃掉。
+
+然而对于使用长期 DataLoader 时，这种内存缓存的策略是不安全的，因为它会消耗太多的内存了。如果在这样的场景中使用 DataLoader，你可以提供一个自定义的缓存实例，不管你喜欢怎么样实现，只要能够遵循 [Map][] 相同的 API 即可。
+
+下面这个示例使用了 <ruby>LRU<rp>（</rp><rt>least recently used</rt><rp>）</rp></ruby> 缓存来限制总内存，通过使用 [lru_map](https://github.com/rsms/js-lru) 的 npm 包控制最多存储 100 个缓存值。
+
+```js
+import { LRUMap } from 'lru_map';
+
+const myLoader = new DataLoader(someBatchLoadFn, {
+  cacheMap: new LRUMap(100)
+});
+```
+
+更具体地说，任意实现了 `get()`、`set()`、`delete()` 和 `clear()` 方法的实现方式都可以。这就应运而生了大量的[缓存算法](https://en.wikipedia.org/wiki/Cache_algorithms)。
+
+## API
+
 
 
 [GraphQL JS]: https://github.com/graphql/graphql-js
 [Express]: https://expressjs.com/
+[Map]:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
