@@ -8,7 +8,7 @@ DataLoader 是一个通用工具，可以用作应用程序数据获取层的一
 
 DataLoader 是一个用 Javascript 实现 Node.js 服务最初思想的简化版本。DataLoader 通常用于实现 [GraphQL JS][] 服务，但它的适用场景也很广泛。
 
-这种批处理和数据请求缓存的机制并不是 Node.js 或 JavaScript 特有的， 它也是 [Haxl](https://github.com/facebook/Haxl) （Facebook 的 Haskell 数据加载库）的主要动机。 更多关于 H阿修罗 如何工作的信息可以在这篇[博客文章](ttps://code.facebook.com/posts/302060973291128/open-sourcing-haxl-a-library-for-haskell/)中查看。
+这种批处理和数据请求缓存的机制并不是 Node.js 或 JavaScript 特有的， 它也是 [Haxl](https://github.com/facebook/Haxl) （Facebook 的 Haskell 数据加载库）的主要动机。 更多关于 Haxl 如何工作的信息可以在这篇[博客文章](ttps://code.facebook.com/posts/302060973291128/open-sourcing-haxl-a-library-for-haskell/)中查看。
 
 Dataloader 不仅可以用于构建 Node.js 下的 GraphQL 服务，还可以作为一个公共参考实现的概念移植到其他开发语言。 如果您将 DataLoader 移植到了其他的语言平台，请在源码项目中提交一个带有您项目链接的 Issue。
 
@@ -62,6 +62,45 @@ DataLoader 允许你在不牺牲批量数据加载性能的情况下分离程序
 <a id="batch-function"></a>
 
 ### 批处理方法
+
+批处理方法接受一个数组作为参数，并且返回一个数组结果的 Promise 或者一个 Error 实例。 Loader 本身作为 `this` 上下文。
+
+```js
+async function batchFunction(keys) {
+  const results = await db.fetchAllKeys(keys);
+  return keys.map(key => results[key] || new Error(`No result for ${key}`));
+}
+
+const loader = new DataLoader(batchFunction);
+```
+
+此方法必须遵守以下约束：
+
+- 返回数组的长度必须和参数数组的长度相同。
+- 返回数组中每一个下标必须与参数数组中相对应。
+
+例如，如果你的批处理方法传入的参数为： `[2, 9, 6, 1]`，后端服务加载并返回的结果：
+
+```js
+{ id: 9, name: 'Chicago' },
+{ id: 1, name: 'New York' },
+{ id: 2, name: 'San Francisco' }
+```
+
+后端服务返回的结果和我们请求的顺序不同，可能是因为这么做的话效率会更高一些。并且，结果中缺少了参数 `6`，我们可以理解为不存在该参数对应的结果。
+
+为了遵守批处理方法的约束，必须返回一个与参数数组长度相同的返回值数组，并对其进行重新排序，以确保每个下标与原始参数 `[2, 9, 6, 1]`对应。
+
+```js
+[
+  { id: 2, name: 'San Francisco' },
+  { id: 9, name: 'Chicago' },
+  null, // or perhaps `new Error()`
+  { id: 1, name: 'New York' }
+]
+```
+
+### 批处理调度
 
 
 
