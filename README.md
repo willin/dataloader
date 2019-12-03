@@ -1,10 +1,10 @@
 # DataLoader
 
-DataLoader 是一个通用工具，可以用作应用程序数据获取层的一部分，通过批处理和缓存的方式为各种不同的后端和减少后端的请求数量提供一致的 API 接口。
+<ruby>DataLoader<rp>（</rp><rt>数据加载器</rt><rp>）</rp></ruby> 是一个通用工具，可以用作应用程序数据获取层的一部分，通过批处理和缓存的方式为各种不同的后端和减少后端的请求数量提供一致的 API 接口。
 
 !> 本文翻译自： https://github.com/graphql/dataloader
 
-在 2010 年时由 Facebook 的 [@schrockn](https://github.com/schrockn) 最初开发了 “Loader” （加载器）接口的一个端口，在当时后端 API 接口中作为简单的强制合并杂项的 Key-Value 键值对存储使用。后来在 Facebook， “Loader” 变成了一个 “Ent”（异构） 框架的实现细节，隐私感知数据实体加载和缓存层面的 Web 服务产品代码。 最终成为巩固 Facebook GraphQL （比 REST 更高效、强大和灵活的新一代 API 标准） 服务的实现和类型定义。
+在 2010 年时由 Facebook 的 [@schrockn](https://github.com/schrockn) 最初开发了 “<ruby>Loader<rp>（</rp><rt>加载器</rt><rp>）</rp></ruby>” 接口的一个端口，在当时后端 API 接口中作为简单的强制合并杂项的 Key-Value 键值对存储使用。后来在 Facebook， “Loader” 变成了一个 “<ruby>Ent<rp>（</rp><rt>异构</rt><rp>）</rp></ruby>” 框架的实现细节，隐私感知数据实体加载和缓存层面的 Web 服务产品代码。 最终成为巩固 Facebook GraphQL （比 REST 更高效、强大和灵活的新一代 API 标准） 服务的实现和类型定义。
 
 DataLoader 是一个用 Javascript 实现 Node.js 服务最初思想的简化版本。DataLoader 通常用于实现 [GraphQL JS][] 服务，但它的适用场景也很广泛。
 
@@ -32,7 +32,7 @@ yarn add dataloader
 
 ## 批处理
 
-批处理并不是一种高级特性，但却是 DataLoader 的主要特性。 创建 Loaders （加载器）需要提供批处理加载方法。
+批处理并不是一种高级特性，但却是 DataLoader 的主要特性。 创建 Loader 需要提供批处理加载方法。
 
 ```js
 const DataLoader = require('dataloader');
@@ -145,6 +145,34 @@ dispatch();
 DataLoader 为应用内每一个单独请求提供了内存缓存。 在 `.load()` 方法执行之后，将排除缓存中的冗余加载。
 
 ### 缓存每一个请求
+
+DataLoader 的缓存**并不能**替代 Redis、Memcache 或者其他共享的应用级缓存。 DataLoader 主要是一个数据加载的机制，它的缓存只用于在单个请求的上下文中不再重复加载相同的数据。为了实现这一点，它在内存中维护了一个简单的缓存（更确切应该说：`.load()` 是一个记忆化方法）。
+
+要避免来自不同用户的多个请求使用 DataLoader 实例，因为这可能导致各个请求缓存的数据出现异常。通常，DataLoader 实例在 <ruby>Request<rp>（</rp><rt>请求</rt><rp>）</rp></ruby> 开始时创建，并在请求结束后不再使用。
+
+一个基于 [Express][] 的示例：
+
+```js
+function createLoaders(authToken) {
+  return {
+    users: new DataLoader(ids => genUsers(authToken, ids))
+  };
+}
+
+const app = express();
+
+app.get('/', function(req, res) {
+  const authToken = authenticateUser(req);
+  const loaders = createLoaders(authToken);
+  res.send(renderPage(req, loaders));
+});
+
+app.listen();
+```
+
+### 缓存和批处理
+
+
 
 
 
