@@ -142,6 +142,10 @@ dispatch();
 
 ## 缓存
 
+DataLoader 为应用内每一个单独请求提供了内存缓存。 在 `.load()` 方法执行之后，将排除缓存中的冗余加载。
+
+### 缓存每一个请求
+
 
 
 [GraphQL JS]: https://github.com/graphql/graphql-js
