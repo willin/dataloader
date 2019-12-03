@@ -102,6 +102,46 @@ const loader = new DataLoader(batchFunction);
 
 ### 批处理调度
 
+默认情况下，DataLoader 会在调用批处理方法之前合并单框架执行中所有单独的加载。能够确保在多个相关请求转变成一个单一批处理中不会出现额外的延迟。事实上，这与 Facebook 在 2010 年最初的 PHP 实现中表现形式相同。请参阅[源代码](https://github.com/graphql/dataloader/blob/master/src/index.js)中的 `enqueuePostPromiseJob`，了解有关此操作方式的更多详细信息。
+
+然而，有的时候这样的表现形式并不可取，或者并不是最佳。因为你的代码中使用了 `setTimeout`，也许你会希望请求在后续的 Tick 上扩展，或者你希望手动接管而不考虑运行循环。 DataLoader 允许提供自定义的批处理调度来支持这些或其他的场景。
+
+自定义批处理调度在选项参数中称为 `batchScheduleFn`，必须传入一个有回调的方法，并且这个方法在执行批处理请求的时候能够立即执行。
+
+举一个例子，这里是一个采集 100 毫秒内所有请求的批处理调度（所以增加了 100 毫秒的延迟）：
+
+```js
+const myLoader = new DataLoader(myBatchFn, {
+  batchScheduleFn: callback => setTimeout(callback, 100)
+});
+```
+
+再来另外一个例子，这是手动分发的批处理调度：
+
+```js
+function createScheduler() {
+  let callbacks = [];
+  return {
+    schedule(callback) {
+      callbacks.push(callback);
+    },
+    dispatch() {
+      callbacks.forEach(callback => callback());
+      callbacks = [];
+    }
+  };
+}
+
+const { schedule, dispatch } = createScheduler();
+const myLoader = new DataLoader(myBatchFn, { batchScheduleFn: schedule });
+
+myLoader.load(1);
+myLoader.load(2);
+dispatch();
+```
+
+## 缓存
+
 
 
 [GraphQL JS]: https://github.com/graphql/graphql-js
