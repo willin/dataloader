@@ -285,7 +285,25 @@ const myLoader = new DataLoader(someBatchLoadFn, {
 
 ## API
 
+### DataLoader <ruby>Class<rp>（</rp><rt>类</rt><rp>）</rp></ruby>
 
+DataLoader 创建了一个从特定后端加载指定唯一参数（例如 SQL 表的 `id` 字段或者 MongoDB 数据库的文档名称）数据的批处理加载方法的公开 API。
+
+每一个 `DataLoader` 实例包含了唯一的内存缓存。在长期应用或者服务于多个不同访问权限的用户时需要谨慎使用，并考虑为每一个 Web 请求创建一个新的实例。
+
+### `new DataLoader(batchLoadFn [, options])` 
+
+
+
+### TBD
+
+## 版权信息
+
+译者： [Willin Wang](https://github.com/willin)
+
+团队： [@视网么](https://github.com/shiwangme)
+
+MIT License
 
 [GraphQL JS]: https://github.com/graphql/graphql-js
 [Express]: https://expressjs.com/
