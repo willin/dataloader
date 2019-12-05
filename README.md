@@ -40,9 +40,9 @@ const DataLoader = require('dataloader');
 const userLoader = new DataLoader(keys => myBatchGetUsers(keys));
 ```
 
-一个批处理加载方法接受一个数组的参数，并且返回包裹一个数组的值的 Promise 对象[<sup>*</sup>](#batch-function)。
+一个批处理加载方法接受一个数组的键名，并且返回包裹一个数组的值的 Promise 对象[<sup>*</sup>](#batch-function)。
 
-然后，从 Loader 中加载独立的返回值。 DataLoader 会合并单框架执行（时间循环中的一个 Tick）所有独立加载，然后执行所有请求参数的批处理方法。
+然后，从 Loader 中加载独立的返回值。 DataLoader 会合并单框架执行（时间循环中的一个 Tick）所有独立加载，然后执行所有请求键名的批处理方法。
 
 ```js
 const user = await userLoader.load(1);
@@ -63,7 +63,7 @@ DataLoader 允许你在不牺牲批量数据加载性能的情况下分离程序
 
 ### 批处理方法
 
-批处理方法接受一个数组作为参数，并且返回一个数组结果的 Promise 或者一个 Error 实例。 Loader 本身作为 `this` 上下文。
+批处理方法接受一个数组作为键名，并且返回一个数组结果的 Promise 或者一个 Error 实例。 Loader 本身作为 `this` 上下文。
 
 ```js
 async function batchFunction(keys) {
@@ -76,10 +76,10 @@ const loader = new DataLoader(batchFunction);
 
 此方法必须遵守以下约束：
 
-- 返回数组的长度必须和参数数组的长度相同。
-- 返回数组中每一个下标必须与参数数组中相对应。
+- 返回数组的长度必须和键名数组的长度相同。
+- 返回数组中每一个下标必须与键名数组中相对应。
 
-例如，如果你的批处理方法传入的参数为： `[2, 9, 6, 1]`，后端服务加载并返回的结果：
+例如，如果你的批处理方法传入的键名为： `[2, 9, 6, 1]`，后端服务加载并返回的结果：
 
 ```js
 { id: 9, name: 'Chicago' },
@@ -87,9 +87,9 @@ const loader = new DataLoader(batchFunction);
 { id: 2, name: 'San Francisco' }
 ```
 
-后端服务返回的结果和我们请求的顺序不同，可能是因为这么做的话效率会更高一些。并且，结果中缺少了参数 `6`，我们可以理解为不存在该参数对应的结果。
+后端服务返回的结果和我们请求的顺序不同，可能是因为这么做的话效率会更高一些。并且，结果中缺少了键名 `6`，我们可以理解为不存在该键名对应的结果。
 
-为了遵守批处理方法的约束，必须返回一个与参数数组长度相同的返回值数组，并对其进行重新排序，以确保每个下标与原始参数 `[2, 9, 6, 1]`对应。
+为了遵守批处理方法的约束，必须返回一个与键名数组长度相同的返回值数组，并对其进行重新排序，以确保每个下标与原始键名 `[2, 9, 6, 1]`对应。
 
 ```js
 [
@@ -99,6 +99,8 @@ const loader = new DataLoader(batchFunction);
   { id: 1, name: 'New York' }
 ]
 ```
+
+<a id="batch-scheduling"></a>
 
 ### 批处理调度
 
@@ -172,7 +174,7 @@ app.listen();
 
 ### 缓存和批处理
 
-后续调用相同参数的  `.load()` 方法时，该参数将不会再被添加到批处理方法中。 *然而*，返回的 Promise 将仍然等待当前批处理完成。这样，缓存和未缓存的请求将会同时 <ruby>Resolve<rp>（</rp><rt>解决</rt><rp>）</rp></ruby>，允许 DataLoader 对后续依赖的加载优化。
+后续调用相同键名的  `.load()` 方法时，该键名将不会再被添加到批处理方法中。 *然而*，返回的 Promise 将仍然等待当前批处理完成。这样，缓存和未缓存的请求将会同时 <ruby>Resolve<rp>（</rp><rt>解决</rt><rp>）</rp></ruby>，允许 DataLoader 对后续依赖的加载优化。
 
 在下面的例子里，<ruby>User<rp>（</rp><rt>用户</rt><rp>）</rp></ruby> `1` 恰巧是缓存的。 然而，因为 User `1` 和 `2` 在同一个 Tick 中加载，它们将会被同时 Resolve。这就意味着 `user.bestFrientID` 加载也会在同一 Tick 下发生，导致了产生 2 次总请求数（与 User `1` 未缓存情况相同）。
 
@@ -237,9 +239,9 @@ try {
 
 ### 禁用缓存
 
-在某些非常见情况下， 可能希望*不缓存* DataLoader。执行 `new DataLoader(myBatchFn, { cache: false })` 将会确保每次执行 `.load()` 方法时产生一个*新* Promise，请求的参数将不会存储到内存中。
+在某些非常见情况下， 可能希望*不缓存* DataLoader。执行 `new DataLoader(myBatchFn, { cache: false })` 将会确保每次执行 `.load()` 方法时产生一个*新* Promise，请求的键名将不会存储到内存中。
 
-然而，当内存缓存禁用时，你的批处理方法可能会接受含有重复值的数组参数！每个参数值各自调用 `.load()`。你的批处理加载器将会为每个请求参数的实例提供返回值。
+然而，当内存缓存禁用时，你的批处理方法可能会接受含有重复值数组的键名！每个键名值各自调用 `.load()`。你的批处理加载器将会为每个请求键名的实例提供返回值。
 
 例如：
 
@@ -287,15 +289,242 @@ const myLoader = new DataLoader(someBatchLoadFn, {
 
 ### DataLoader <ruby>Class<rp>（</rp><rt>类</rt><rp>）</rp></ruby>
 
-DataLoader 创建了一个从特定后端加载指定唯一参数（例如 SQL 表的 `id` 字段或者 MongoDB 数据库的文档名称）数据的批处理加载方法的公开 API。
+DataLoader 创建了一个从特定后端加载指定唯一键名（例如 SQL 表的 `id` 字段或者 MongoDB 数据库的文档名称）数据的批处理加载方法的公开 API。
 
 每一个 `DataLoader` 实例包含了唯一的内存缓存。在长期应用或者服务于多个不同访问权限的用户时需要谨慎使用，并考虑为每一个 Web 请求创建一个新的实例。
 
-### `new DataLoader(batchLoadFn [, options])` 
+### `new DataLoader(batchLoadFn [, options])`
+
+使用一个批处理加载方法和参数来创建一个新的 `DataLoader`。
+
+- *batchLoadFn*：一个加载方法，用一个键名数组作为参数，返回一个 Promise 对象来解决一个返回值数组。
+- *options*： 一个可选的参数对象：
+
+| 参数名 | 类型 | 默认值 | 描述 |
+| ---------- | ---- | ------- | ----------- |
+| *batch*  | Boolean | `true` | 设置为 `false` 禁用批处理，每次加载均触发 `batchLoadFn` 方法执行。相当于设置 `maxBatchSize` 为 `1`。 |
+| *maxBatchSize* | Number | `Infinity` | 限制传入 `batchLoadFn` 方法的条目数量。 可以设置为 `1` 来禁用批处理。 |
+| *batchScheduleFn* | Function | 见 [批处理调度](#batch-scheduling) | 批处理调度的后期执行方法。这个方法需要立即执行回调。 |
+| *cache* | Boolean | `true` | 设置为 `false` 禁用缓存，为每一个相同参数的  `batchLoadFn` 创建新的 Promise。相当于设置 `cacheMap` 为 `null`。 |
+| *cacheKeyFn* | Function | `key => key` | 为缓存提供键名。当用对象作为参数时，并且两个对象可以视为相同的情况下使用。 |
+| *cacheMap* | Object | `new Map()` | [Map][] 对象（或相似 API 的对象）用作缓存。可以设置为 `null` 来禁用缓存。 |
+
+### `.load(key)`
+
+加载一个键名，返回一个对应该键名的值的 Promise。
+
+- `key`： 一个需要加载的键名
+
+###  `.loadMany(keys)`
+
+加载多个键名，返回一个值的数组：
+
+```js
+const [ a, b ] = await myLoader.loadMany([ 'a', 'b' ]);
+```
+
+这个就类似于冗长的写法：
+
+```js
+const [ a, b ] = await Promise.all([
+  myLoader.load('a'),
+  myLoader.load('b')
+]);
+```
+
+然而，还是会在加载失败的时候有一些区别。 `Promise.all()` 会抛出 reject 异常， loadMany() 永远返回 resolve，只是在返回的结果中可能会是一个值或者一个 Error 实例。
+
+```js
+var [ a, b, c ] = await myLoader.loadMany([ 'a', 'b', 'badkey' ]);
+// c 是个 Error 实例
+```
+
+* `keys`： 一个需要加载的键名数组
+
+### `.clear(key)`
+
+清除某个键名对应的缓存值（如果存在）。返回自身供链式调用。
+
+* `key`： 一个需要清除的键名
+
+### `.clearAll()`
+
+清除所有缓存。在某些未知非法结果时使用。返回自身供链式调用。
+
+### `.prime(key, value)`
+
+使用键值对初始化缓存。如果键名已经存在，则不发生改变。（如果需要强制重新初始化缓存，可以先清除 `loader.clear(key).prime(key, value)` 。）返回自身供链式调用。
+
+可以用一个错误实例来初始化缓存。
+
+## 与 GraphQL 一起使用
+
+DataLoader 与 [GraphQL][GraphQL JS] 可以完美搭配使用。GraphQL 的字段被设计为独立的方法。 没有缓存或者批处理机制的话， GraphQL 服务器很容易就会被数据请求给撑爆。
+
+例如以下的 GraphQL 请求：
+
+```gql
+{
+  me {
+    name
+    bestFriend {
+      name
+    }
+    friends(first: 5) {
+      name
+      bestFriend {
+        name
+      }
+    }
+  }
+}
+```
+
+如果 `me` 、`bestFriend` 和 `friends` 需要向服务端请求，那么这里可能会有多达 13 条数据查询。
+
+在使用了 DataLoader 后，我们可以用清晰的代码和至多 4 次数据库查询（以 [SQLite](https://github.com/graphql/dataloader/blob/master/examples/SQL.md) 定义 `User` 类型来示意）甚至更少（如果命中缓存）。
+
+```js
+const UserType = new GraphQLObjectType({
+  name: 'User',
+  fields: () => ({
+    name: { type: GraphQLString },
+    bestFriend: {
+      type: UserType,
+      resolve: user => userLoader.load(user.bestFriendID)
+    },
+    friends: {
+      args: {
+        first: { type: GraphQLInt }
+      },
+      type: new GraphQLList(UserType),
+      resolve: async (user, { first }) => {
+        const rows = await queryLoader.load([
+          'SELECT toID FROM friends WHERE fromID=? LIMIT ?', user.id, first
+        ]);
+        return rows.map(row => userLoader.load(row.toID));
+      }
+    }
+  })
+});
+```
+
+## 常用场景
+
+### 为每个请求创建 DataLoader
+
+在很多应用中，Web 服务器可能会使用 DataLoader 服务于很多不同的用户、并且区分不同的访问权限。如果很多用户共用一个缓存，会是非常危险的，所以鼓励为不同的请求创建新的 DataLoader：
+
+```js
+function createLoaders(authToken) {
+  return {
+    users: new DataLoader(ids => genUsers(authToken, ids)),
+    cdnUrls: new DataLoader(rawUrls => genCdnUrls(authToken, rawUrls)),
+    stories: new DataLoader(keys => genStories(authToken, keys)),
+  }
+}
+
+// 当处理一个流入的Web请求时
+const loaders = createLoaders(request.query.authToken);
+
+// 然后在应用程序中使用逻辑：
+const user = await loaders.users.load(4)
+const pic = await loaders.cdnUrls.load(user.rawPicUrl)
+```
+
+创建一个对象，每一个不同的键名来区分 DataLoader 是一种常见的使用方式，这可以提供一个单一的值传给需要执行数据加载的代码，例如 [GraphQL JS][] 请求中 `rootValue` 的一部分。
+
+### 通过可替换键名加载
+
+有时，某些值可以通过不同的方式被获取。例如，<ruby>User<rp>（</rp><rt>用户</rt><rp>）</rp></ruby> 类型的数据可以通过 `id` 或者 `username` 字段来获取结果。如果相同的用户被两个键名加载的话，同时缓存所有键名会很有效：
+
+```js
+const userByIDLoader = new DataLoader(async ids => {
+  const users = await genUsersByID(ids);
+  for (let user of users) {
+    usernameLoader.prime(user.username, user);
+  }
+  return users;
+})
+
+const usernameLoader = new DataLoader(async names => {
+  const users = await genUsernames(names);
+  for (let user of users) {
+    userByIDLoader.prime(user.id, user);
+  }
+  return users;
+})
+```
+
+### 冻结结果强制不可篡改
+
+DataLoader 的缓存值一般情况下是应该视为不可修改的。 然而 DataLoader 本身并不会强制这样，你可以使用 `Object.freeze()` 创建一个高阶函数来实现不可篡改：
+
+```js
+function freezeResults(batchLoader) {
+  return keys => batchLoader(keys).then(values => values.map(Object.freeze));
+}
+
+const myLoader = new DataLoader(freezeResults(myBatchLoader));
+```
+
+### 返回对象（而不是数组）的批处理方法
+
+DataLoader 期望的批处理方法需要返回一个与提高键名数组等长度的值数组。但这并不是一种其他第三方库的常见返回格式。 可以使用 DataLoader 高阶方法来转换类型。下面的例子转换成键值对的结果。
+
+```js
+function objResults(batchLoader) {
+  return keys => batchLoader(keys).then(objValues => keys.map(
+    key => objValues[key] || new Error(`No value for ${key}`)
+  ));
+}
+
+const myLoader = new DataLoader(objResults(myBatchLoader));
+```
+
+## 常见后端数据库
+
+想通过一个特定的后端数据库来起步？试试 [DataLoader 官方提供的示例](https://github.com/graphql/dataloader/tree/master/examples)。
+
+## 其他语言实现
+
+按照字母顺序排列
+
+* Elixir
+  * [dataloader](https://github.com/absinthe-graphql/dataloader)
+* Golang
+  * [Dataloader](https://github.com/nicksrandall/dataloader)
+* Java
+  * [java-dataloader](https://github.com/graphql-java/java-dataloader)
+* .Net
+  * [GraphQL .NET DataLoader](https://graphql-dotnet.github.io/docs/guides/dataloader/)
+  * [GreenDonut](https://github.com/ChilliCream/greendonut)
+* Perl
+  * [perl-DataLoader](https://github.com/richardjharris/perl-DataLoader)
+* PHP
+  * [DataLoaderPHP](https://github.com/overblog/dataloader-php)
+* Python
+  * [aiodataloader](https://github.com/syrusakbary/aiodataloader)
+* ReasonML
+  * [bs-dataloader](https://github.com/ulrikstrid/bs-dataloader)
+* Ruby
+  * [BatchLoader](https://github.com/exaspark/batch-loader)
+  * [Dataloader](https://github.com/sheerun/dataloader)
+  * [GraphQL Batch](https://github.com/Shopify/graphql-batch)
+* Rust
+  * [Dataloader](https://github.com/cksac/dataloader-rs)
+* Swift
+  * [SwiftDataLoader](https://github.com/kimdv/SwiftDataLoader)
+
+## 视频教程
+
+**DataLoader 视频教程 （YouTube）：**
+
+一个 DataLoader v1 的视频教程。虽然源码已经重构了，但这个视频依然是个很好的介绍概述，来帮助你了解 DataLoader 如何运作。
+
+<a href="https://youtu.be/OQTnXNCDywA" target="_blank" alt="DataLoader Source Code Walkthrough"><img src="https://img.youtube.com/vi/OQTnXNCDywA/0.jpg" /></a>
 
 
-
-### TBD
 
 ## 版权信息
 
@@ -305,6 +534,11 @@ DataLoader 创建了一个从特定后端加载指定唯一参数（例如 SQL �
 
 MIT License
 
+首次翻译完成：2019.12.05
+
+最后更新时间： 2019.12.05
+
 [GraphQL JS]: https://github.com/graphql/graphql-js
 [Express]: https://expressjs.com/
 [Map]:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
+
