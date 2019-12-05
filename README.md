@@ -363,7 +363,7 @@ DataLoader 与 [GraphQL][GraphQL JS] 可以完美搭配使用。GraphQL 的字�
 
 例如以下的 GraphQL 请求：
 
-```gql
+```graphql
 {
   me {
     name
