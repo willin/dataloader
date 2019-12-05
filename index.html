@@ -7,7 +7,20 @@
   <meta name="description" content="Copyright 2019, Willin Wang">
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <link rel="shortcut icon" href="/favicon.ico">
-  <link rel="stylesheet" href="//unpkg.com/docsify/lib/themes/dark.css">
+  <!-- <link rel="stylesheet" href="//unpkg.com/docsify/lib/themes/vue.css"> -->
+  <link rel="stylesheet" href="//unpkg.com/docsify-themeable/dist/css/theme-simple-dark.css">
+  <style>
+    :root {
+      /* Reduce the font size */
+      --base-font-size: 16px;
+
+      /* Change the theme color hue */
+      --theme-hue: 525;
+
+      /* Change the sidebar bullets */
+      --sidebar-nav-link-before-content: '🗂️';
+    }
+  </style>
 </head>
 <body>
   <div id="app"></div>
@@ -24,6 +37,7 @@
     }
   </script>
   <script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
+  <script src="//unpkg.com/docsify-themeable/dist/js/docsify-themeable.min.js"></script>
   <script src="//unpkg.com/docsify/lib/plugins/search.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-javascript.min.js"></script>
   <script src="//unpkg.com/prismjs/components/prism-bash.min.js"></script>
