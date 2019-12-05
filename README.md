@@ -534,7 +534,7 @@ const myLoader = new DataLoader(objResults(myBatchLoader));
 
 MIT License
 
-首次翻译完成：2019.12.05
+首次翻译完成： 2019.12.05
 
 最后更新时间： 2019.12.05
 
