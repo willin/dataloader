@@ -530,8 +530,6 @@ const myLoader = new DataLoader(objResults(myBatchLoader));
 
 译者： [Willin Wang](https://github.com/willin)
 
-团队： [@视网么](https://github.com/shiwangme)
-
 MIT License
 
 首次翻译完成： 2019.12.05
